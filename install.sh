@@ -10,17 +10,26 @@ cmd() { command -v "$1" >/dev/null 2>&1; }
 
 os() {
   case "$(uname -s)" in
-    Darwin) echo mac ;;
-    Linux) echo linux ;;
-    MINGW*|MSYS*|CYGWIN*) echo windows ;;
-    *) echo unknown ;;
+  Darwin) echo mac ;;
+  Linux) echo linux ;;
+  MINGW* | MSYS* | CYGWIN*) echo windows ;;
+  *) echo unknown ;;
   esac
 }
 
-need_git() { cmd git || { echo "git is required"; exit 1; }; }
+# shellcheck source=agent.sh
+. "$DOTFILES/agent.sh"
+
+need_git() { cmd git || {
+  echo "git is required"
+  exit 1
+}; }
 
 install_mac() {
-  cmd brew || { echo "Install Homebrew first: https://brew.sh"; exit 1; }
+  cmd brew || {
+    echo "Install Homebrew first: https://brew.sh"
+    exit 1
+  }
   brew install git stow zsh neovim fzf zoxide lazygit nvm kitty fd ripgrep
 }
 
@@ -51,9 +60,12 @@ install_nvim() {
 
   local arch tarball dir
   case "$(uname -m)" in
-    x86_64|amd64) arch=x86_64 ;;
-    aarch64|arm64) arch=arm64 ;;
-    *) echo "unknown arch for nvim: $(uname -m)"; return 1 ;;
+  x86_64 | amd64) arch=x86_64 ;;
+  aarch64 | arm64) arch=arm64 ;;
+  *)
+    echo "unknown arch for nvim: $(uname -m)"
+    return 1
+    ;;
   esac
   tarball="nvim-linux-${arch}.tar.gz"
   dir="nvim-linux-${arch}"
@@ -111,9 +123,12 @@ install_lazygit() {
   fi
   local arch ver tmp
   case "$(uname -m)" in
-    x86_64|amd64) arch=Linux_x86_64 ;;
-    aarch64|arm64) arch=Linux_arm64 ;;
-    *) echo "unknown arch for lazygit: $(uname -m)"; return 1 ;;
+  x86_64 | amd64) arch=Linux_x86_64 ;;
+  aarch64 | arm64) arch=Linux_arm64 ;;
+  *)
+    echo "unknown arch for lazygit: $(uname -m)"
+    return 1
+    ;;
   esac
   ver="$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest | sed -n 's/.*"tag_name": "v\([^"]*\)".*/\1/p' | head -1)"
   tmp="$(mktemp -d)"
@@ -167,11 +182,17 @@ pick_clis() {
   CLI_CURSOR=0
   CLI_KIRO=0
   case "$choice" in
-    1|cursor) CLI_CURSOR=1 ;;
-    2|kiro) CLI_KIRO=1 ;;
-    3|both) CLI_CURSOR=1; CLI_KIRO=1 ;;
-    4|none|skip) ;;
-    *) echo "unknown CLI choice: $choice (use 1-4, cursor, kiro, both, none)"; exit 1 ;;
+  1 | cursor) CLI_CURSOR=1 ;;
+  2 | kiro) CLI_KIRO=1 ;;
+  3 | both)
+    CLI_CURSOR=1
+    CLI_KIRO=1
+    ;;
+  4 | none | skip) ;;
+  *)
+    echo "unknown CLI choice: $choice (use 1-4, cursor, kiro, both, none)"
+    exit 1
+    ;;
   esac
 }
 
@@ -186,7 +207,7 @@ in_dotfiles() {
     real="$(cd "$(dirname "$p")" && pwd -P)/$(basename "$p")"
   fi
   case "$real" in
-    "$DOTFILES"|"$DOTFILES"/*) return 0 ;;
+  "$DOTFILES" | "$DOTFILES"/*) return 0 ;;
   esac
   return 1
 }
@@ -217,7 +238,10 @@ stow_packages() {
   done
   [ ${#pkgs[@]} -eq 0 ] && pkgs=("${PACKAGES[@]}")
 
-  cmd stow || { echo "stow not installed"; exit 1; }
+  cmd stow || {
+    echo "stow not installed"
+    exit 1
+  }
   mkdir -p "$HOME/.config" "$HOME/.local/bin"
   unfold_config "$HOME/.config/herdr"
   unfold_config "$HOME/.config/kitty"
@@ -244,12 +268,13 @@ stow_packages() {
 
 usage() {
   cat <<EOF
-usage: $0 [install|stow|adopt|unstow|dry-run|nvim] [--cli cursor|kiro|both|none]
+usage: $0 [install|stow|adopt|unstow|dry-run|nvim|agent] [--cli cursor|kiro|both|none]
   install   packages + CLIs + stow (default)
   stow      symlink packages into \$HOME
   adopt     stow --adopt (moves conflicts into this repo — commit first)
   unstow    remove symlinks
   nvim      install latest Neovim from GitHub (Linux) or brew (Mac)
+  agent     Engram + Gentleman skills for Cursor/Kiro present on this machine
   --cli     skip the prompt (mac/linux default: both; windows: cursor)
 EOF
 }
@@ -259,44 +284,70 @@ main() {
   kind="$(os)"
   while [ $# -gt 0 ]; do
     case "$1" in
-      --cli) cli="${2:-}"; shift 2 ;;
-      -h|--help|help) usage; exit 0 ;;
-      install|stow|adopt|unstow|dry-run|nvim) action="$1"; shift ;;
-      *) usage; exit 1 ;;
+    --cli)
+      cli="${2:-}"
+      shift 2
+      ;;
+    -h | --help | help)
+      usage
+      exit 0
+      ;;
+    install | stow | adopt | unstow | dry-run | nvim | agent)
+      action="$1"
+      shift
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
     esac
   done
 
   case "$action" in
-    install)
-      need_git
-      pick_clis "$cli"
-      case "$kind" in
-        mac) install_mac ;;
-        linux) install_linux ;;
-        windows)
-          echo "Git Bash cannot run zsh/kitty/stow cleanly. Use WSL and re-run, or install.ps1 for native Windows tools."
-          exit 1
-          ;;
-        *) echo "unsupported OS: $(uname -s)"; exit 1 ;;
-      esac
-      install_nvim
-      install_nvm
-      install_node
-      install_lazygit
-      install_treesitter_cli
-      install_herdr
-      [ "$CLI_CURSOR" = 1 ] && install_cursor
-      [ "$CLI_KIRO" = 1 ] && install_kiro
-      stow_packages "${PACKAGES[@]}"
-      echo "done. open a new terminal or: exec zsh"
-      echo "if this is still bash: chsh -s \"$(command -v zsh)\""
+  install)
+    need_git
+    pick_clis "$cli"
+    case "$kind" in
+    mac) install_mac ;;
+    linux) install_linux ;;
+    windows)
+      echo "Git Bash cannot run zsh/kitty/stow cleanly. Use WSL and re-run, or install.ps1 for native Windows tools."
+      exit 1
       ;;
-    nvim) install_nvim; command -v nvim && nvim --version | head -1 ;;
-    stow) stow_packages "${PACKAGES[@]}" ;;
-    adopt) stow_packages --adopt "${PACKAGES[@]}" ;;
-    unstow) (cd "$DOTFILES" && stow -D -t "$HOME" "${PACKAGES[@]}") ;;
-    dry-run) (cd "$DOTFILES" && stow -n -v -t "$HOME" "${PACKAGES[@]}") ;;
-    *) usage; exit 1 ;;
+    *)
+      echo "unsupported OS: $(uname -s)"
+      exit 1
+      ;;
+    esac
+    install_nvim
+    install_nvm
+    install_node
+    install_lazygit
+    install_treesitter_cli
+    install_herdr
+    [ "$CLI_CURSOR" = 1 ] && install_cursor
+    [ "$CLI_KIRO" = 1 ] && install_kiro
+    setup_agents
+    stow_packages "${PACKAGES[@]}"
+    echo "done. open a new terminal or: exec zsh"
+    echo "if this is still bash: chsh -s \"$(command -v zsh)\""
+    ;;
+  nvim)
+    install_nvim
+    command -v nvim && nvim --version | head -1
+    ;;
+  agent)
+    need_git
+    setup_agents
+    ;;
+  stow) stow_packages "${PACKAGES[@]}" ;;
+  adopt) stow_packages --adopt "${PACKAGES[@]}" ;;
+  unstow) (cd "$DOTFILES" && stow -D -t "$HOME" "${PACKAGES[@]}") ;;
+  dry-run) (cd "$DOTFILES" && stow -n -v -t "$HOME" "${PACKAGES[@]}") ;;
+  *)
+    usage
+    exit 1
+    ;;
   esac
 }
 

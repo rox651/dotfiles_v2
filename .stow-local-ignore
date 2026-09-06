@@ -1,6 +1,7 @@
 README.md
 install.sh
 install.ps1
+agent.sh
 .git
 .gitignore
 LICENSE

@@ -51,6 +51,93 @@ if (-not (Has herdr)) {
   irm https://herdr.dev/install.ps1 | iex
 }
 
+function HasCursor {
+  $wantCursor -or (Test-Path "$HOME\.cursor") -or (Has cursor) -or (Has agent)
+}
+function HasKiro {
+  $wantKiro -or (Test-Path "$HOME\.kiro") -or (Has kiro-cli) -or (Has kiro)
+}
+
+function Install-Engram {
+  $rel = Invoke-RestMethod "https://api.github.com/repos/Gentleman-Programming/engram/releases/latest"
+  $ver = $rel.tag_name.TrimStart("v")
+  $arch = if ([Environment]::Is64BitOperatingSystem) {
+    if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "amd64" }
+  } else { throw "unsupported arch" }
+  $asset = $rel.assets | Where-Object { $_.name -eq "engram_${ver}_windows_${arch}.zip" } | Select-Object -First 1
+  if (-not $asset) { throw "no engram zip for windows_$arch" }
+  $binDir = Join-Path $HOME "bin"
+  New-Item -ItemType Directory -Force -Path $binDir | Out-Null
+  $zip = Join-Path $env:TEMP "engram.zip"
+  Invoke-WebRequest $asset.browser_download_url -OutFile $zip
+  Expand-Archive -Force $zip -DestinationPath (Join-Path $env:TEMP "engram-extract")
+  $exe = Get-ChildItem (Join-Path $env:TEMP "engram-extract") -Recurse -Filter engram.exe | Select-Object -First 1
+  Copy-Item $exe.FullName (Join-Path $binDir "engram.exe") -Force
+  $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+  if ($userPath -notlike "*$binDir*") {
+    [Environment]::SetEnvironmentVariable("Path", "$binDir;$userPath", "User")
+  }
+  $env:Path = "$binDir;" + $env:Path
+  Write-Host "engram $ver -> $binDir\engram.exe"
+}
+
+function Set-EngramMcp($file) {
+  $bin = (Get-Command engram).Source
+  $data = @{ mcpServers = @{} }
+  if (Test-Path $file) {
+    $data = Get-Content $file -Raw | ConvertFrom-Json
+  }
+  if (-not $data.mcpServers) { $data | Add-Member mcpServers (@{}) -Force }
+  $data.mcpServers | Add-Member -NotePropertyName engram -NotePropertyValue @{ command = $bin; args = @("mcp", "--tools=agent") } -Force
+  $dir = Split-Path $file
+  New-Item -ItemType Directory -Force -Path $dir | Out-Null
+  $data | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 $file
+}
+
+function Install-GentlemanSkills {
+  $cache = Join-Path $HOME ".cache\dotfiles\gentleman-skills"
+  New-Item -ItemType Directory -Force -Path (Split-Path $cache) | Out-Null
+  if (Test-Path (Join-Path $cache ".git")) {
+    git -C $cache pull --ff-only
+  } else {
+    git clone --depth 1 "https://github.com/Gentleman-Programming/Gentleman-Skills.git" $cache
+  }
+  $rels = @(
+    "curated\react-19", "curated\nextjs-15", "curated\typescript", "curated\tailwind-4",
+    "curated\zod-4", "curated\zustand-5", "curated\playwright", "curated\pytest",
+    "curated\jira-task", "curated\jira-epic", "community\react-native"
+  )
+  $dests = @()
+  if (HasCursor) { $dests += (Join-Path $HOME ".cursor\skills") }
+  if (HasKiro) { $dests += (Join-Path $HOME ".kiro\skills") }
+  foreach ($dest in $dests) {
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    Remove-Item -Recurse -Force (Join-Path $dest "angular") -ErrorAction SilentlyContinue
+    foreach ($rel in $rels) {
+      $src = Join-Path $cache $rel
+      $name = Split-Path $rel -Leaf
+      $link = Join-Path $dest $name
+      if (-not (Test-Path (Join-Path $src "SKILL.md"))) { throw "missing skill $rel" }
+      if (Test-Path $link) { Remove-Item -Recurse -Force $link }
+      New-Item -ItemType Junction -Path $link -Target $src | Out-Null
+    }
+    Write-Host "Gentleman skills -> $dest"
+  }
+}
+
+if ((HasCursor) -or (HasKiro)) {
+  Install-Engram
+  if (HasCursor) {
+    engram setup cursor
+    Set-EngramMcp (Join-Path $HOME ".cursor\mcp.json")
+  }
+  if (HasKiro) {
+    engram setup kiro
+    Set-EngramMcp (Join-Path $HOME ".kiro\settings\mcp.json")
+  }
+  Install-GentlemanSkills
+}
+
 Write-Host @"
 Native Windows has nvim + git + fzf + lazygit + zoxide + nvm + herdr$(if ($wantCursor) { ' + Cursor CLI' } else { '' }).
 For zsh, zinit, kitty, GNU Stow$(if ($wantKiro) { ', and Kiro CLI' } else { '' }):
