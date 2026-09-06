@@ -81,9 +81,34 @@ install_nvim() {
   fi
 }
 
+load_nvm() {
+  export NVM_DIR="$HOME/.nvm"
+  mkdir -p "$NVM_DIR"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    . "$NVM_DIR/nvm.sh"
+  elif [ -s /opt/homebrew/opt/nvm/nvm.sh ]; then
+    . /opt/homebrew/opt/nvm/nvm.sh
+  fi
+}
+
 install_nvm() {
-  [ -s "$HOME/.nvm/nvm.sh" ] && return 0
+  load_nvm
+  cmd nvm && return 0
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  load_nvm
+}
+
+install_node() {
+  load_nvm
+  nvm install --lts
+  nvm alias default 'lts/*'
+  if cmd corepack; then
+    corepack enable
+    corepack prepare yarn@stable --activate
+    corepack prepare pnpm@latest --activate
+  else
+    npm install -g yarn pnpm
+  fi
 }
 
 install_cursor() {
@@ -212,6 +237,7 @@ main() {
       esac
       install_nvim
       install_nvm
+      install_node
       install_herdr
       [ "$CLI_CURSOR" = 1 ] && install_cursor
       [ "$CLI_KIRO" = 1 ] && install_kiro
@@ -220,6 +246,7 @@ main() {
       echo "if this is still bash: chsh -s \"$(command -v zsh)\""
       ;;
     nvim) install_nvim; command -v nvim && nvim --version | head -1 ;;
+    stow) stow_packages "${PACKAGES[@]}" ;;
     adopt) stow_packages --adopt "${PACKAGES[@]}" ;;
     unstow) (cd "$DOTFILES" && stow -D -t "$HOME" "${PACKAGES[@]}") ;;
     dry-run) (cd "$DOTFILES" && stow -n -v -t "$HOME" "${PACKAGES[@]}") ;;

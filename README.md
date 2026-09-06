@@ -27,7 +27,7 @@ exec zsh
 nvim
 ```
 
-The script installs git, stow, zsh, latest Neovim, fzf/zoxide (via zinit), lazygit, nvm, kitty (mac), fd, ripgrep, herdr, then symlinks this repo into `$HOME`. Existing `~/.zshrc` / nvim files are moved to `~/.dotfiles-backup-*`.
+The script installs git, stow, zsh, latest Neovim, Node LTS (npm, yarn, pnpm via nvm), fzf/zoxide (via zinit), lazygit, kitty (mac), fd, ripgrep, herdr, then symlinks this repo into `$HOME`. Existing `~/.zshrc` / nvim files are moved to `~/.dotfiles-backup-*`.
 
 It asks which agent CLIs to install (Cursor, Kiro, both, neither). Default: **both** on Mac/Linux, **Cursor** on Windows.
 

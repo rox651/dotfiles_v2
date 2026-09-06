@@ -19,6 +19,14 @@ if (Has winget) {
   exit 1
 }
 
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+if (Has nvm) {
+  nvm install lts
+  nvm use lts
+}
+npm install -g yarn pnpm
+
 Write-Host ""
 Write-Host "Which agent CLIs?"
 Write-Host "  1) Cursor"
