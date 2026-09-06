@@ -1,3 +1,9 @@
 .DS_Store
 *.swp
 *~
+nvim/.config/nvim/lazy-lock.json
+herdr/.config/herdr/.plugins.lock
+herdr/.config/herdr/*.log
+herdr/.config/herdr/*.sock
+herdr/.config/herdr/session.json
+herdr/.config/herdr/config.toml

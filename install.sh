@@ -175,14 +175,35 @@ pick_clis() {
   esac
 }
 
-# Real files block Stow. Move them aside so the repo copies can link.
+# Real files block Stow. Never mv a path that already lives in this repo
+# (Stow dir-fold makes ~/.config/herdr a symlink into ~/dotfiles).
+in_dotfiles() {
+  local p="$1" real
+  [ -e "$p" ] || [ -L "$p" ] || return 1
+  real="$(cd "$(dirname "$p")" && pwd -P)/$(basename "$p")"
+  case "$real" in
+    "$DOTFILES"|"$DOTFILES"/*) return 0 ;;
+  esac
+  return 1
+}
+
 backup_real() {
   local p="$1"
   [ -e "$p" ] || [ -L "$p" ] || return 0
   [ -L "$p" ] && return 0
+  in_dotfiles "$p" && return 0
   mkdir -p "$BACKUP/$(dirname "${p#"$HOME"/}")"
   mv "$p" "$BACKUP/${p#"$HOME"/}"
   echo "backed up $p -> $BACKUP/${p#"$HOME"/}"
+}
+
+# Stow folds missing dirs into the package. Herdr then writes logs into git.
+unfold_config() {
+  local p="$1"
+  if [ -L "$p" ] && in_dotfiles "$p"; then
+    rm "$p"
+  fi
+  mkdir -p "$p"
 }
 
 stow_packages() {
@@ -194,6 +215,9 @@ stow_packages() {
 
   cmd stow || { echo "stow not installed"; exit 1; }
   mkdir -p "$HOME/.config" "$HOME/.local/bin"
+  unfold_config "$HOME/.config/herdr"
+  unfold_config "$HOME/.config/kitty"
+  unfold_config "$HOME/.config/nvim"
 
   if [ "$adopt" -eq 0 ]; then
     BACKUP="${BACKUP:-$HOME/.dotfiles-backup-$(date +%Y%m%d%H%M%S)}"
@@ -203,7 +227,6 @@ stow_packages() {
     backup_real "$HOME/.config/nvim"
     backup_real "$HOME/.config/kitty/kitty.conf"
     backup_real "$HOME/.config/kitty/current-theme.conf"
-    backup_real "$HOME/.config/herdr/kitty-attach.sh"
     backup_real "$HOME/.config/oh-my-posh"
   else
     extra+=(--adopt)
