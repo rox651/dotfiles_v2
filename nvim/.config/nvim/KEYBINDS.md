@@ -168,15 +168,10 @@ Footer of LazyGit always shows the keys for the **current** panel. Learn `?` fir
 
 ## Coding
 
-### Completion (blink.cmp) + Copilot
+### Completion (blink.cmp)
 
 | Key | What it does |
 | --- | --- |
-| `Ctrl-l` | Accept Copilot suggestion |
-| `Alt-l` | Accept Copilot **word** |
-| `Alt-Shift-l` | Accept Copilot **line** |
-| `Alt-]` / `Alt-[` | Next / prev Copilot suggestion |
-| `Ctrl-]` | Dismiss Copilot |
 | `Tab` / `Shift-Tab` | Next / prev completion item (blink) |
 | `Enter` | Confirm completion |
 | `Ctrl-y` | Confirm (LazyVim default) |
