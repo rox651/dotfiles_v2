@@ -1,0 +1,11 @@
+[user]
+	name = Homero
+	email = homerojose69@gmail.com
+[init]
+	defaultBranch = main
+[pull]
+	rebase = true
+[core]
+	editor = nvim
+[alias]
+	lg = log --oneline --graph --decorate
