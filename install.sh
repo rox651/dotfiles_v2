@@ -100,8 +100,18 @@ pick_clis() {
   esac
 }
 
+# Real files block Stow. Move them aside so the repo copies can link.
+backup_real() {
+  local p="$1"
+  [ -e "$p" ] || [ -L "$p" ] || return 0
+  [ -L "$p" ] && return 0
+  mkdir -p "$BACKUP/$(dirname "${p#"$HOME"/}")"
+  mv "$p" "$BACKUP/${p#"$HOME"/}"
+  echo "backed up $p -> $BACKUP/${p#"$HOME"/}"
+}
+
 stow_packages() {
-  local adopt=0 pkgs=()
+  local adopt=0 pkgs=() extra=()
   for a in "$@"; do
     if [ "$a" = "--adopt" ]; then adopt=1; else pkgs+=("$a"); fi
   done
@@ -110,19 +120,24 @@ stow_packages() {
   cmd stow || { echo "stow not installed"; exit 1; }
   mkdir -p "$HOME/.config" "$HOME/.local/bin"
 
-  if [ "$adopt" -eq 0 ] && [ -e "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
-    echo "skip nvim: $HOME/.config/nvim already exists (use: $0 adopt)"
-    local kept=()
-    for p in "${pkgs[@]}"; do
-      [ "$p" = nvim ] && continue
-      kept+=("$p")
-    done
-    pkgs=("${kept[@]}")
+  if [ "$adopt" -eq 0 ]; then
+    BACKUP="${BACKUP:-$HOME/.dotfiles-backup-$(date +%Y%m%d%H%M%S)}"
+    backup_real "$HOME/.zshrc"
+    backup_real "$HOME/.zshenv"
+    backup_real "$HOME/.gitconfig"
+    backup_real "$HOME/.config/nvim"
+    backup_real "$HOME/.config/kitty/kitty.conf"
+    backup_real "$HOME/.config/kitty/current-theme.conf"
+    backup_real "$HOME/.config/herdr/kitty-attach.sh"
+    backup_real "$HOME/.config/oh-my-posh"
+  else
+    extra+=(--adopt)
   fi
 
-  local extra=()
-  [ "$adopt" -eq 1 ] && extra+=(--adopt)
-  (cd "$DOTFILES" && stow -v -t "$HOME" "${extra[@]}" "${pkgs[@]}")
+  local pkg
+  for pkg in "${pkgs[@]}"; do
+    (cd "$DOTFILES" && stow -v -t "$HOME" "${extra[@]}" "$pkg")
+  done
 }
 
 usage() {
@@ -167,7 +182,8 @@ main() {
       [ "$CLI_CURSOR" = 1 ] && install_cursor
       [ "$CLI_KIRO" = 1 ] && install_kiro
       stow_packages "${PACKAGES[@]}"
-      echo "done. new shell: exec zsh"
+      echo "done. open a new terminal or: exec zsh"
+      echo "if this is still bash: chsh -s \"$(command -v zsh)\""
       ;;
     stow) stow_packages "${PACKAGES[@]}" ;;
     adopt) stow_packages --adopt "${PACKAGES[@]}" ;;

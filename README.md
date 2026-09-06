@@ -37,10 +37,10 @@ Asks which agent CLIs to install (Cursor, Kiro, both, neither). Default: **both*
 ./install.sh --cli both
 ```
 
-If `~/.config/nvim` already exists (this machine), nvim is skipped. To replace it:
+Existing `~/.zshrc` / `~/.config/nvim` (Ubuntu defaults) are moved to `~/.dotfiles-backup-*`, then replaced with symlinks. Re-run after `git pull`:
 
 ```sh
-./install.sh adopt   # commit this repo first
+./install.sh stow
 ```
 
 **Windows (native)** — editor/CLI tools only:
@@ -59,7 +59,7 @@ cd ~/dotfiles
 stow -t ~ zsh git kitty nvim omp herdr
 ```
 
-Conflicts: move the live file out of the way, or `stow --adopt` (overwrites the copy in this repo).
+Conflicts: `./install.sh stow` backs them up first. `./install.sh adopt` imports the live files into this repo instead.
 
 ## New machine checklist
 
