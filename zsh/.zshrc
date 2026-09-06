@@ -58,7 +58,19 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && [ ! -s "$NVM_DIR/nvm.sh" ] && . "/opt/homebrew/opt/nvm/nvm.sh"
 
-command -v fzf >/dev/null 2>&1 && eval "$(fzf --zsh)"
+if command -v fzf >/dev/null 2>&1; then
+  # apt fzf on Ubuntu is often < 0.48 and has no --zsh
+  case "$(fzf --version 2>/dev/null)" in
+    0.[0-3]*|0.4[0-7]*)
+      for _fzf in /usr/share/doc/fzf/examples/key-bindings.zsh /usr/share/fzf/key-bindings.zsh \
+                  /usr/share/doc/fzf/examples/completion.zsh /usr/share/fzf/completion.zsh; do
+        [ -r "$_fzf" ] && . "$_fzf"
+      done
+      unset _fzf
+      ;;
+    *) eval "$(fzf --zsh)" ;;
+  esac
+fi
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init --cmd cd zsh)"
 
 if command -v herdr >/dev/null 2>&1; then

@@ -27,7 +27,7 @@ install_mac() {
 install_linux() {
   if cmd apt-get; then
     sudo apt-get update -y
-    sudo apt-get install -y git stow zsh curl unzip neovim fd-find ripgrep fzf
+    sudo apt-get install -y git stow zsh curl unzip neovim fd-find ripgrep
   elif cmd dnf; then
     sudo dnf install -y git stow zsh curl unzip neovim fd-find ripgrep fzf
   elif cmd pacman; then
