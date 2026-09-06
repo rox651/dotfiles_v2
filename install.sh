@@ -180,7 +180,11 @@ pick_clis() {
 in_dotfiles() {
   local p="$1" real
   [ -e "$p" ] || [ -L "$p" ] || return 1
-  real="$(cd "$(dirname "$p")" && pwd -P)/$(basename "$p")"
+  if [ -d "$p" ]; then
+    real="$(cd "$p" && pwd -P)"
+  else
+    real="$(cd "$(dirname "$p")" && pwd -P)/$(basename "$p")"
+  fi
   case "$real" in
     "$DOTFILES"|"$DOTFILES"/*) return 0 ;;
   esac
