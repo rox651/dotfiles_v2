@@ -57,7 +57,7 @@ which-key treats `c` / `d` as prefixes, so `Space` `c` and `Space` `d` open a me
 | `te` then Enter | New tab (type a filename after `te` if you want) |
 | `Tab` / `Shift-Tab` | Next / previous tab |
 | `sb` | Last **buffer** (the other file you were just in) |
-| `sn` / `sp` | Next / previous buffer |
+| `Ctrl-h` / `Ctrl-l` | Previous / next buffer |
 | `-` | Oil (folder of this file; `-` again goes up) |
 | `+` | Increment number under cursor |
 | `x` | Delete char, **do not** yank it |
@@ -237,7 +237,7 @@ Craftzdog did not remove these.
 | `Space` `qq` | Quit all |
 | `Space` `bd` | Delete buffer |
 | `Space` `fn` | New file |
-| `Ctrl-h` `Ctrl-j` `Ctrl-k` `Ctrl-l` | Move windows (LazyVim; same idea as `s` + hjkl) |
+| `Ctrl-k` | Move to upper window (LazyVim) |
 | `Ctrl-s` | Save |
 | `Esc` `Esc` | Clear search highlight |
 | `gcc` | Toggle comment line |
@@ -261,6 +261,7 @@ Craftzdog did not remove these.
 | `Space` `c` | Code menu | black-hole change — **prefix wins** |
 | `Space` `p` | (varies) | paste from yank register 0 |
 | `Space` `gb` | blame picker | git.nvim blame window |
+| `Ctrl-h` / `Ctrl-l` | left / right window | previous / next buffer — **buffer cycle wins** |
 | `Ctrl-j` | lower window | next diagnostic — **window move wins** |
 
 When lost: `Space` `sk` (search keymaps) or `Space` then wait for which-key.
