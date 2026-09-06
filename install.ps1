@@ -25,7 +25,7 @@ if (Has nvm) {
   nvm install lts
   nvm use lts
 }
-npm install -g yarn pnpm
+npm install -g yarn pnpm tree-sitter-cli
 
 Write-Host ""
 Write-Host "Which agent CLIs?"

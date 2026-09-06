@@ -1,3 +1,11 @@
+export PATH="$HOME/.local/bin:$PATH"
+
+# Windows Terminal / WSL has no Kitty wrapper. Skip if already inside herdr.
+if [[ -o interactive && -t 1 && -z "${HERDR_ENV:-}" && -z "${HERDR_SKIP:-}" && -z "${TMUX:-}" ]] \
+  && command -v herdr >/dev/null 2>&1; then
+  exec herdr
+fi
+
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 [ ! -d "$ZINIT_HOME" ] && mkdir -p "$(dirname "$ZINIT_HOME")"
 [ ! -d "$ZINIT_HOME/.git" ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
@@ -51,8 +59,6 @@ alias ls='ls --color'
 alias vim='nvim'
 alias c='clear'
 alias lg='lazygit'
-
-export PATH="$HOME/.local/bin:$PATH"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"

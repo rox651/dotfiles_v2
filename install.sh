@@ -36,16 +36,7 @@ install_linux() {
     echo "Install git + stow + zsh + neovim yourself, then re-run."
     exit 1
   fi
-  cmd lazygit || go_install_or_skip github.com/jesseduffield/lazygit@latest
   cmd zoxide || curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
-}
-
-go_install_or_skip() {
-  if cmd go; then
-    go install "$1"
-  else
-    echo "skip: $1 (no go). zinit/brew can cover this later."
-  fi
 }
 
 install_nvim() {
@@ -109,6 +100,32 @@ install_node() {
   else
     npm install -g yarn pnpm
   fi
+}
+
+install_lazygit() {
+  cmd lazygit && return 0
+  mkdir -p "$HOME/.local/bin"
+  if [ "$(os)" = mac ]; then
+    brew install lazygit
+    return 0
+  fi
+  local arch ver tmp
+  case "$(uname -m)" in
+    x86_64|amd64) arch=Linux_x86_64 ;;
+    aarch64|arm64) arch=Linux_arm64 ;;
+    *) echo "unknown arch for lazygit: $(uname -m)"; return 1 ;;
+  esac
+  ver="$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest | sed -n 's/.*"tag_name": "v\([^"]*\)".*/\1/p' | head -1)"
+  tmp="$(mktemp -d)"
+  curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${ver}/lazygit_${ver}_${arch}.tar.gz" -o "$tmp/lg.tgz"
+  tar -C "$tmp" -xzf "$tmp/lg.tgz" lazygit
+  install -m 755 "$tmp/lazygit" "$HOME/.local/bin/lazygit"
+  rm -rf "$tmp"
+}
+
+install_treesitter_cli() {
+  load_nvm
+  npm install -g tree-sitter-cli
 }
 
 install_cursor() {
@@ -238,6 +255,8 @@ main() {
       install_nvim
       install_nvm
       install_node
+      install_lazygit
+      install_treesitter_cli
       install_herdr
       [ "$CLI_CURSOR" = 1 ] && install_cursor
       [ "$CLI_KIRO" = 1 ] && install_kiro
