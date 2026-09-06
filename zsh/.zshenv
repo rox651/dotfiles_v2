@@ -1,3 +1,4 @@
+export PATH="$HOME/.local/bin:$PATH"
 export VOLTA_HOME="$HOME/.volta"
 [ -d "$VOLTA_HOME/bin" ] && export PATH="$VOLTA_HOME/bin:$PATH"
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"

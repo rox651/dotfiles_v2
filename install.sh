@@ -27,11 +27,11 @@ install_mac() {
 install_linux() {
   if cmd apt-get; then
     sudo apt-get update -y
-    sudo apt-get install -y git stow zsh curl unzip neovim fd-find ripgrep
+    sudo apt-get install -y git stow zsh curl unzip fd-find ripgrep
   elif cmd dnf; then
-    sudo dnf install -y git stow zsh curl unzip neovim fd-find ripgrep fzf
+    sudo dnf install -y git stow zsh curl unzip fd-find ripgrep fzf
   elif cmd pacman; then
-    sudo pacman -Sy --noconfirm git stow zsh curl unzip neovim fd ripgrep fzf
+    sudo pacman -Sy --noconfirm git stow zsh curl unzip fd ripgrep fzf
   else
     echo "Install git + stow + zsh + neovim yourself, then re-run."
     exit 1
@@ -45,6 +45,39 @@ go_install_or_skip() {
     go install "$1"
   else
     echo "skip: $1 (no go). zinit/brew can cover this later."
+  fi
+}
+
+install_nvim() {
+  export PATH="$HOME/.local/bin:$PATH"
+  mkdir -p "$HOME/.local/bin"
+
+  if [ "$(os)" = mac ]; then
+    brew install neovim
+    brew upgrade neovim || true
+    return 0
+  fi
+
+  local arch tarball dir
+  case "$(uname -m)" in
+    x86_64|amd64) arch=x86_64 ;;
+    aarch64|arm64) arch=arm64 ;;
+    *) echo "unknown arch for nvim: $(uname -m)"; return 1 ;;
+  esac
+  tarball="nvim-linux-${arch}.tar.gz"
+  dir="nvim-linux-${arch}"
+
+  local tmp
+  tmp="$(mktemp -d)"
+  curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/${tarball}" -o "$tmp/nvim.tar.gz"
+  tar -C "$tmp" -xzf "$tmp/nvim.tar.gz"
+  rm -rf "$HOME/.local/nvim"
+  mv "$tmp/$dir" "$HOME/.local/nvim"
+  ln -sfn "$HOME/.local/nvim/bin/nvim" "$HOME/.local/bin/nvim"
+  rm -rf "$tmp"
+
+  if cmd apt-get && dpkg -l neovim 2>/dev/null | grep -q '^ii'; then
+    sudo apt-get remove -y neovim
   fi
 }
 
@@ -142,12 +175,12 @@ stow_packages() {
 
 usage() {
   cat <<EOF
-usage: $0 [install|stow|adopt|unstow|dry-run] [--cli cursor|kiro|both|none]
+usage: $0 [install|stow|adopt|unstow|dry-run|nvim] [--cli cursor|kiro|both|none]
   install   packages + CLIs + stow (default)
   stow      symlink packages into \$HOME
   adopt     stow --adopt (moves conflicts into this repo — commit first)
   unstow    remove symlinks
-  dry-run   show stow actions
+  nvim      install latest Neovim from GitHub (Linux) or brew (Mac)
   --cli     skip the prompt (mac/linux default: both; windows: cursor)
 EOF
 }
@@ -159,7 +192,7 @@ main() {
     case "$1" in
       --cli) cli="${2:-}"; shift 2 ;;
       -h|--help|help) usage; exit 0 ;;
-      install|stow|adopt|unstow|dry-run) action="$1"; shift ;;
+      install|stow|adopt|unstow|dry-run|nvim) action="$1"; shift ;;
       *) usage; exit 1 ;;
     esac
   done
@@ -177,6 +210,7 @@ main() {
           ;;
         *) echo "unsupported OS: $(uname -s)"; exit 1 ;;
       esac
+      install_nvim
       install_nvm
       install_herdr
       [ "$CLI_CURSOR" = 1 ] && install_cursor
@@ -185,7 +219,7 @@ main() {
       echo "done. open a new terminal or: exec zsh"
       echo "if this is still bash: chsh -s \"$(command -v zsh)\""
       ;;
-    stow) stow_packages "${PACKAGES[@]}" ;;
+    nvim) install_nvim; command -v nvim && nvim --version | head -1 ;;
     adopt) stow_packages --adopt "${PACKAGES[@]}" ;;
     unstow) (cd "$DOTFILES" && stow -D -t "$HOME" "${PACKAGES[@]}") ;;
     dry-run) (cd "$DOTFILES" && stow -n -v -t "$HOME" "${PACKAGES[@]}") ;;
