@@ -232,7 +232,7 @@ unfold_config() {
 }
 
 stow_packages() {
-  local adopt=0 pkgs=() extra=()
+  local adopt=0 pkgs=()
   for a in "$@"; do
     if [ "$a" = "--adopt" ]; then adopt=1; else pkgs+=("$a"); fi
   done
@@ -256,13 +256,13 @@ stow_packages() {
     backup_real "$HOME/.config/kitty/kitty.conf"
     backup_real "$HOME/.config/kitty/current-theme.conf"
     backup_real "$HOME/.config/oh-my-posh"
-  else
-    extra+=(--adopt)
   fi
 
-  local pkg
+  local pkg stow_args=(-v -t "$HOME")
+  [ "$adopt" -eq 1 ] && stow_args+=(--adopt)
+
   for pkg in "${pkgs[@]}"; do
-    (cd "$DOTFILES" && stow -v -t "$HOME" "${extra[@]}" "$pkg")
+    (cd "$DOTFILES" && stow "${stow_args[@]}" "$pkg")
   done
 }
 
