@@ -125,6 +125,72 @@ function Install-GentlemanSkills {
   }
 }
 
+function Sync-SkillRepo {
+  param([string]$Cache, [string]$Repo)
+  New-Item -ItemType Directory -Force -Path (Split-Path $Cache) | Out-Null
+  if (Test-Path (Join-Path $Cache ".git")) {
+    git -C $Cache pull --ff-only
+  } else {
+    if (Test-Path $Cache) { Remove-Item -Recurse -Force $Cache }
+    git clone --depth 1 $Repo $Cache
+  }
+}
+
+function Link-SkillsDir {
+  param([string]$SrcRoot, [string]$DestRoot)
+  New-Item -ItemType Directory -Force -Path $DestRoot | Out-Null
+  foreach ($skillDir in Get-ChildItem -Path $SrcRoot -Directory) {
+    if (-not (Test-Path (Join-Path $skillDir.FullName "SKILL.md"))) { continue }
+    $link = Join-Path $DestRoot $skillDir.Name
+    if (Test-Path $link) { Remove-Item -Recurse -Force $link }
+    New-Item -ItemType Junction -Path $link -Target $skillDir.FullName | Out-Null
+  }
+}
+
+function Install-CavemanSkills {
+  $cache = Join-Path $HOME ".cache\dotfiles\caveman"
+  Sync-SkillRepo $cache "https://github.com/JuliusBrussee/caveman.git"
+  $dests = @()
+  if (HasCursor) { $dests += (Join-Path $HOME ".cursor\skills") }
+  if (HasKiro) { $dests += (Join-Path $HOME ".kiro\skills") }
+  foreach ($dest in $dests) {
+    Link-SkillsDir (Join-Path $cache "skills") $dest
+    Write-Host "caveman skills -> $dest"
+  }
+  $rule = Join-Path $cache "src\rules\caveman-activate.md"
+  if ((HasCursor) -and (Test-Path $rule)) {
+    Copy-Item -Force $rule (Join-Path $HOME ".cursor\caveman-rule.md")
+  }
+}
+
+function Install-PonytailSkills {
+  $cache = Join-Path $HOME ".cache\dotfiles\ponytail"
+  Sync-SkillRepo $cache "https://github.com/DietrichGebert/ponytail.git"
+  $dests = @()
+  if (HasCursor) { $dests += (Join-Path $HOME ".cursor\skills") }
+  if (HasKiro) { $dests += (Join-Path $HOME ".kiro\skills") }
+  foreach ($dest in $dests) {
+    Link-SkillsDir (Join-Path $cache "skills") $dest
+    Write-Host "ponytail skills -> $dest"
+  }
+  $cursorRule = Join-Path $cache ".cursor\rules\ponytail.mdc"
+  if ((HasCursor) -and (Test-Path $cursorRule)) {
+    Copy-Item -Force $cursorRule (Join-Path $HOME ".cursor\ponytail-rule.mdc")
+  }
+  $kiroRule = Join-Path $cache "AGENTS.md"
+  if ((HasKiro) -and (Test-Path $kiroRule)) {
+    $steering = Join-Path $HOME ".kiro\steering"
+    New-Item -ItemType Directory -Force -Path $steering | Out-Null
+    Copy-Item -Force $kiroRule (Join-Path $steering "ponytail.md")
+  }
+}
+
+function Install-AgentSkills {
+  Install-GentlemanSkills
+  Install-CavemanSkills
+  Install-PonytailSkills
+}
+
 if ((HasCursor) -or (HasKiro)) {
   Install-Engram
   if (HasCursor) {
@@ -135,7 +201,7 @@ if ((HasCursor) -or (HasKiro)) {
     engram setup kiro
     Set-EngramMcp (Join-Path $HOME ".kiro\settings\mcp.json")
   }
-  Install-GentlemanSkills
+  Install-AgentSkills
 }
 
 Write-Host @"

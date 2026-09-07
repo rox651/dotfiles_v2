@@ -1,8 +1,12 @@
-# Sourced by install.sh. Local Engram + selected Gentleman-Skills for Cursor/Kiro.
+# Sourced by install.sh. Local Engram + agent skills for Cursor/Kiro.
 # No Engram git sync / cloud — memory stays on this machine.
 
 SKILLS_CACHE="${SKILLS_CACHE:-$HOME/.cache/dotfiles/gentleman-skills}"
 SKILLS_REPO="https://github.com/Gentleman-Programming/Gentleman-Skills.git"
+CAVEMAN_CACHE="${CAVEMAN_CACHE:-$HOME/.cache/dotfiles/caveman}"
+CAVEMAN_REPO="https://github.com/JuliusBrussee/caveman.git"
+PONYTAIL_CACHE="${PONYTAIL_CACHE:-$HOME/.cache/dotfiles/ponytail}"
+PONYTAIL_REPO="https://github.com/DietrichGebert/ponytail.git"
 ENGRAM_REPO="Gentleman-Programming/engram"
 
 # Frontend minus angular. Testing. Workflow. Community: react-native only.
@@ -130,13 +134,14 @@ setup_engram_agents() {
   fi
 }
 
-sync_gentleman_skills_repo() {
-  mkdir -p "$(dirname "$SKILLS_CACHE")"
-  if [ -d "$SKILLS_CACHE/.git" ]; then
-    git -C "$SKILLS_CACHE" pull --ff-only
+sync_skill_repo() {
+  local cache="$1" repo="$2"
+  mkdir -p "$(dirname "$cache")"
+  if [ -d "$cache/.git" ]; then
+    git -C "$cache" pull --ff-only
   else
-    rm -rf "$SKILLS_CACHE"
-    git clone --depth 1 "$SKILLS_REPO" "$SKILLS_CACHE"
+    rm -rf "$cache"
+    git clone --depth 1 "$repo" "$cache"
   fi
 }
 
@@ -155,9 +160,22 @@ link_skill() {
   ln -sfn "$src" "$dest"
 }
 
+link_skills_dir() {
+  local src_root="$1" dest_root="$2"
+  local skill_dir name dest
+  mkdir -p "$dest_root"
+  for skill_dir in "$src_root"/*/; do
+    [ -f "${skill_dir}SKILL.md" ] || continue
+    name="$(basename "$skill_dir")"
+    dest="$dest_root/$name"
+    rm -rf "$dest"
+    ln -sfn "$skill_dir" "$dest"
+  done
+}
+
 install_gentleman_skills() {
   local dest did=0
-  sync_gentleman_skills_repo
+  sync_skill_repo "$SKILLS_CACHE" "$SKILLS_REPO"
   if has_cursor; then
     dest="$HOME/.cursor/skills"
     mkdir -p "$dest"
@@ -181,6 +199,54 @@ install_gentleman_skills() {
   if [ "$did" = 0 ]; then
     echo "no Cursor or Kiro found; skip skills"
   fi
+}
+
+install_caveman_skills() {
+  local dest did=0
+  sync_skill_repo "$CAVEMAN_CACHE" "$CAVEMAN_REPO"
+  if has_cursor; then
+    dest="$HOME/.cursor/skills"
+    link_skills_dir "$CAVEMAN_CACHE/skills" "$dest"
+    [ -f "$CAVEMAN_CACHE/src/rules/caveman-activate.md" ] &&
+      cp -f "$CAVEMAN_CACHE/src/rules/caveman-activate.md" "$HOME/.cursor/caveman-rule.md"
+    did=1
+    echo "caveman skills -> $dest"
+  fi
+  if has_kiro; then
+    dest="$HOME/.kiro/skills"
+    link_skills_dir "$CAVEMAN_CACHE/skills" "$dest"
+    did=1
+    echo "caveman skills -> $dest"
+  fi
+  [ "$did" = 1 ] || echo "no Cursor or Kiro found; skip caveman"
+}
+
+install_ponytail_skills() {
+  local dest did=0
+  sync_skill_repo "$PONYTAIL_CACHE" "$PONYTAIL_REPO"
+  if has_cursor; then
+    dest="$HOME/.cursor/skills"
+    link_skills_dir "$PONYTAIL_CACHE/skills" "$dest"
+    [ -f "$PONYTAIL_CACHE/.cursor/rules/ponytail.mdc" ] &&
+      cp -f "$PONYTAIL_CACHE/.cursor/rules/ponytail.mdc" "$HOME/.cursor/ponytail-rule.mdc"
+    did=1
+    echo "ponytail skills -> $dest"
+  fi
+  if has_kiro; then
+    dest="$HOME/.kiro/skills"
+    link_skills_dir "$PONYTAIL_CACHE/skills" "$dest"
+    [ -f "$PONYTAIL_CACHE/AGENTS.md" ] &&
+      cp -f "$PONYTAIL_CACHE/AGENTS.md" "$HOME/.kiro/steering/ponytail.md"
+    did=1
+    echo "ponytail skills -> $dest"
+  fi
+  [ "$did" = 1 ] || echo "no Cursor or Kiro found; skip ponytail"
+}
+
+install_agent_skills() {
+  install_gentleman_skills
+  install_caveman_skills
+  install_ponytail_skills
 }
 
 mcp_has_engram() {
@@ -238,6 +304,28 @@ check_agent_setup() {
       }
     fi
   done
+  if has_cursor; then
+    [ -f "$HOME/.cursor/skills/caveman/SKILL.md" ] || {
+      echo "FAIL: caveman skill missing"
+      fail=1
+    }
+    [ -f "$HOME/.cursor/skills/ponytail/SKILL.md" ] || {
+      echo "FAIL: ponytail skill missing"
+      fail=1
+    }
+    [ -f "$HOME/.cursor/caveman-rule.md" ] || echo "warn: no ~/.cursor/caveman-rule.md"
+    [ -f "$HOME/.cursor/ponytail-rule.mdc" ] || echo "warn: no ~/.cursor/ponytail-rule.mdc"
+  fi
+  if has_kiro; then
+    [ -f "$HOME/.kiro/skills/caveman/SKILL.md" ] || {
+      echo "FAIL: caveman skill missing (kiro)"
+      fail=1
+    }
+    [ -f "$HOME/.kiro/skills/ponytail/SKILL.md" ] || {
+      echo "FAIL: ponytail skill missing (kiro)"
+      fail=1
+    }
+  fi
   if has_cursor && [ -e "$HOME/.cursor/skills/angular" ]; then
     echo "FAIL: angular skill still in Cursor"
     fail=1
@@ -258,6 +346,6 @@ setup_agents() {
   need_git
   install_engram
   setup_engram_agents
-  install_gentleman_skills
+  install_agent_skills
   check_agent_setup
 }

@@ -37,15 +37,21 @@ It asks which agent CLIs to install (Cursor, Kiro, both, neither). Default: **bo
 
 Then: `agent login` and/or `kiro-cli` to authenticate.
 
-Install also puts **Engram** (local MCP memory) and selected **Gentleman-Skills** on whichever of Cursor / Kiro already exists on that machine. Memory is **not** synced between OS or machines. Re-run just that:
+Install also puts **Engram** (local MCP memory) and agent skills on whichever of Cursor / Kiro already exists on that machine. Memory is **not** synced between OS or machines. Re-run just that:
 
 ```sh
 ./install.sh agent
 ```
 
-Skills: Frontend except Angular, Testing, Workflow, Community `react-native`. Cursor: `~/.cursor/skills/`. Kiro: `~/.kiro/skills/` (steering is only Engram's memory protocol).
+Skills: Gentleman (frontend except Angular, testing, workflow, `react-native`), **caveman**, **ponytail**. Cursor: `~/.cursor/skills/`. Kiro: `~/.kiro/skills/` (steering is Engram + ponytail).
 
-Cursor ignores global `.mdc` rules. After `./install.sh agent`, paste `~/.cursor/engram-memory-protocol.md` into **Settings → Rules → User Rules** once. Kiro already loads `~/.kiro/steering/engram.md`.
+Cursor ignores global `.mdc` rules. After `./install.sh agent`, paste into **Settings → Rules → User Rules** once:
+
+- `~/.cursor/engram-memory-protocol.md`
+- `~/.cursor/ponytail-rule.mdc` (always-on lazy-dev mode)
+- `~/.cursor/caveman-rule.md` (optional always-on terse mode; or invoke `/caveman` per session)
+
+Kiro already loads `~/.kiro/steering/engram.md` and `~/.kiro/steering/ponytail.md`.
 
 **Windows (native)** — nvim/git/CLIs only:
 
