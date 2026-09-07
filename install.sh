@@ -274,7 +274,7 @@ usage: $0 [install|stow|adopt|unstow|dry-run|nvim|agent] [--cli cursor|kiro|both
   adopt     stow --adopt (moves conflicts into this repo — commit first)
   unstow    remove symlinks
   nvim      install latest Neovim from GitHub (Linux) or brew (Mac)
-  agent     Engram + agent skills (Gentleman, caveman, ponytail) for Cursor/Kiro
+  agent     Gentle-AI + caveman + ponytail for Cursor/Kiro
   --cli     skip the prompt (mac/linux default: both; windows: cursor)
 EOF
 }

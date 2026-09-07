@@ -164,6 +164,28 @@ Footer of LazyGit always shows the keys for the **current** panel. Learn `?` fir
 | `Space` `gb` | Blame |
 | `Space` `go` | Open file on GitHub / remote in browser |
 
+### gitsigns.nvim (LazyVim default)
+
+Gutter bars on changed lines. Stage hunks in-editor without opening LazyGit.
+
+| Key | What it does |
+| --- | --- |
+| `]h` / `[h` | Next / prev hunk |
+| `]H` / `[H` | Last / first hunk |
+| `Space` `ghs` | Stage hunk (visual: selected lines) |
+| `Space` `ghr` | Reset hunk |
+| `Space` `ghS` | Stage whole buffer |
+| `Space` `ghu` | Undo last stage |
+| `Space` `ghR` | Reset whole buffer |
+| `Space` `ghp` | Preview hunk inline |
+| `Space` `ghb` | Blame line (full) |
+| `Space` `ghB` | Blame buffer |
+| `Space` `ghd` / `Space` `ghD` | Diff this file vs index / vs last commit |
+| `Space` `uG` | Toggle gutter signs |
+| `ih` | Select hunk (operator: `dih` delete hunk, `yih` yank hunk) |
+
+Workflow: edit file, see gutter marks, `Space` `ghs` to stage hunks, `Space` `gg` for commit in LazyGit. `Space` `gb` still uses git.nvim blame picker.
+
 ---
 
 ## Coding

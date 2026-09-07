@@ -37,13 +37,13 @@ It asks which agent CLIs to install (Cursor, Kiro, both, neither). Default: **bo
 
 Then: `agent login` and/or `kiro-cli` to authenticate.
 
-Install also puts **Engram** (local MCP memory) and agent skills on whichever of Cursor / Kiro already exists on that machine. Memory is **not** synced between OS or machines. Re-run just that:
+Install also runs **[Gentle-AI](https://github.com/Gentleman-Programming/gentle-ai)** (Engram memory, skills, SDD) plus **caveman** and **ponytail** on whichever of Cursor / Kiro exists. Memory is **not** synced between machines. Re-run just that:
 
 ```sh
 ./install.sh agent
 ```
 
-Skills: Gentleman (frontend except Angular, testing, workflow, `react-native`), **caveman**, **ponytail**. Cursor: `~/.cursor/skills/`. Kiro: `~/.kiro/skills/` (steering is Engram + ponytail).
+Gentle-AI manages Engram + skills (Angular excluded). Caveman and ponytail stay separate. Cursor: `~/.cursor/skills/`. Kiro: `~/.kiro/skills/`.
 
 Cursor ignores global `.mdc` rules. After `./install.sh agent`, paste into **Settings → Rules → User Rules** once:
 
