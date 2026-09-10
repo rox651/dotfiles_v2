@@ -37,7 +37,7 @@ zinit snippet OMZP::git
 autoload -Uz compinit && compinit
 zinit cdreplay -q
 
-bindkey -e
+bindkey -v
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
 
