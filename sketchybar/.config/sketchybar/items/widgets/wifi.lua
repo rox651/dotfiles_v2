@@ -2,11 +2,24 @@ local icons = require("icons")
 local colors = require("colors")
 local settings = require("settings")
 
--- Execute the event provider binary which provides the event "network_update"
--- for the network interface "en1", which is fired every 2.0 seconds.
-sbar.exec(
-	"killall network_load >/dev/null; $CONFIG_DIR/helpers/event_providers/network_load/bin/network_load en1 network_update 2.0"
-)
+-- After OS reset, Wi-Fi is en0 (en1 is Thunderbolt). Resolve the device name.
+local wifi_iface = "en0"
+
+local function start_network_load(iface)
+	sbar.exec(
+		"killall network_load >/dev/null; $CONFIG_DIR/helpers/event_providers/network_load/bin/network_load "
+			.. iface
+			.. " network_update 2.0"
+	)
+end
+
+sbar.exec("networksetup -listallhardwareports | awk '/Wi-Fi|AirPort/{getline; print $2}'", function(iface)
+	iface = (iface or ""):gsub("%s+", "")
+	if iface ~= "" then
+		wifi_iface = iface
+	end
+	start_network_load(wifi_iface)
+end)
 
 local popup_width = 250
 
@@ -177,8 +190,8 @@ wifi_up:subscribe("network_update", function(env)
 	})
 end)
 
-wifi:subscribe({ "wifi_change", "system_woke" }, function(env)
-	sbar.exec("ipconfig getifaddr en1", function(ip)
+local function set_wifi_icon()
+	sbar.exec("ipconfig getifaddr " .. wifi_iface, function(ip)
 		local connected = not (ip == "")
 		wifi:set({
 			icon = {
@@ -187,7 +200,9 @@ wifi:subscribe({ "wifi_change", "system_woke" }, function(env)
 			},
 		})
 	end)
-end)
+end
+
+wifi:subscribe({ "wifi_change", "system_woke", "forced" }, set_wifi_icon)
 
 local function hide_details()
 	wifi_bracket:set({ popup = { drawing = false } })
@@ -200,12 +215,15 @@ local function toggle_details()
 		sbar.exec("networksetup -getcomputername", function(result)
 			hostname:set({ label = result })
 		end)
-		sbar.exec("ipconfig getifaddr en1", function(result)
+		sbar.exec("ipconfig getifaddr " .. wifi_iface, function(result)
 			ip:set({ label = result })
 		end)
-		sbar.exec("ipconfig getsummary en1 | awk -F ' SSID : '  '/ SSID : / {print $2}'", function(result)
-			ssid:set({ label = result })
-		end)
+		sbar.exec(
+			"ipconfig getsummary " .. wifi_iface .. " | awk -F ' SSID : '  '/ SSID : / {print $2}'",
+			function(result)
+				ssid:set({ label = result })
+			end
+		)
 		sbar.exec("networksetup -getinfo Wi-Fi | awk -F 'Subnet mask: ' '/^Subnet mask: / {print $2}'", function(result)
 			mask:set({ label = result })
 		end)
