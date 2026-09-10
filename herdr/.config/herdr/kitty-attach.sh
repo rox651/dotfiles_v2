@@ -1,5 +1,5 @@
 #!/bin/sh
-# Kitty entry: attach herdr. On first empty session, seed agent + code tabs.
+# Kitty entry: attach herdr. Plugin seeds agent/code/server on each new space.
 export PATH="$HOME/.local/bin:$PATH"
 
 if [ -n "$HERDR_ENV" ]; then
@@ -14,21 +14,9 @@ if ! herdr status server >/dev/null 2>&1; then
   sleep 0.2
 fi
 
-python3 - <<'PY'
-import json, subprocess
-
-def run(*args):
-    subprocess.run(["herdr", *args], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-raw = subprocess.check_output(["herdr", "tab", "list"], text=True)
-tabs = json.loads(raw)["result"]["tabs"]
-if len(tabs) != 1:
-    raise SystemExit(0)
-t = tabs[0]
-if t.get("label") != "1":
-    raise SystemExit(0)
-run("tab", "rename", t["tab_id"], "agent")
-run("tab", "create", "--workspace", t["workspace_id"], "--label", "code", "--no-focus")
-PY
+SEED="$HOME/.config/herdr/default-tabs/ensure-tabs.py"
+if [ -f "$SEED" ]; then
+  python3 "$SEED" || true
+fi
 
 exec herdr

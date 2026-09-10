@@ -1,0 +1,10 @@
+id = "dotfiles.default-tabs"
+name = "Default space tabs"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "On each new space, ensure tabs agent / code / server"
+platforms = ["linux", "macos"]
+
+[[events]]
+on = "workspace.created"
+command = ["python3", "ensure-tabs.py"]

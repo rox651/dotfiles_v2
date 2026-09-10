@@ -158,6 +158,13 @@ install_herdr() {
   curl -fsSL https://herdr.dev/install.sh | sh
 }
 
+link_herdr_default_tabs() {
+  cmd herdr || return 0
+  local dir="$HOME/.config/herdr/default-tabs"
+  [ -f "$dir/herdr-plugin.toml" ] || return 0
+  herdr plugin link "$dir"
+}
+
 install_mac_wm() {
   [ "$(os)" = mac ] || return 0
   cmd brew || return 0
@@ -387,6 +394,7 @@ main() {
     [ "$CLI_KIRO" = 1 ] && install_kiro
     setup_agents
     stow_packages "${PACKAGES[@]}"
+    link_herdr_default_tabs
     start_mac_wm
     echo "done. open a new terminal or: exec zsh"
     echo "if this is still bash: chsh -s \"$(command -v zsh)\""
@@ -399,7 +407,10 @@ main() {
     need_git
     setup_agents
     ;;
-  stow) stow_packages "${PACKAGES[@]}" ;;
+  stow)
+    stow_packages "${PACKAGES[@]}"
+    link_herdr_default_tabs
+    ;;
   adopt) stow_packages --adopt "${PACKAGES[@]}" ;;
   unstow)
     local pkg
