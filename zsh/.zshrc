@@ -37,10 +37,6 @@ zinit snippet OMZP::git
 autoload -Uz compinit && compinit
 zinit cdreplay -q
 
-bindkey -v
-bindkey '^p' history-search-backward
-bindkey '^n' history-search-forward
-
 HISTSIZE=5000
 HISTFILE=~/.zsh_history
 SAVEHIST=$HISTSIZE
@@ -82,6 +78,12 @@ if command -v fzf >/dev/null 2>&1; then
   esac
 fi
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init --cmd cd zsh)"
+
+# Vim for command editing (Esc). Insert keeps emacs autocomplete chords.
+bindkey -v
+bindkey -M viins '^P' history-search-backward
+bindkey -M viins '^N' history-search-forward
+bindkey -M viins '^F' vi-forward-char
 
 if command -v herdr >/dev/null 2>&1; then
   eval "$(herdr completion zsh)"
