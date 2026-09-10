@@ -14,6 +14,9 @@ Each folder is a Stow package. Paths inside a package match `$HOME`.
 | `kitty` | `~/.config/kitty` |
 | `omp` | `~/.config/oh-my-posh` |
 | `herdr` | `~/.config/herdr` |
+| `aerospace` | `~/.config/aerospace` (macOS only) |
+| `sketchybar` | `~/.config/sketchybar` (macOS only) |
+| `borders` | `~/.config/borders` (macOS only) |
 
 ## Install
 
@@ -27,7 +30,18 @@ exec zsh
 nvim
 ```
 
-The script installs git, stow, zsh, latest Neovim, Node LTS (npm, yarn, pnpm via nvm), fzf/zoxide (via zinit), lazygit, kitty (mac), fd, ripgrep, herdr, then symlinks this repo into `$HOME`. Existing `~/.zshrc` / nvim files are moved to `~/.dotfiles-backup-*`.
+The script installs git, stow, zsh, latest Neovim, Node LTS (npm, yarn, pnpm via nvm), fzf/zoxide (via zinit), lazygit, kitty (mac), fd, ripgrep, herdr, AeroSpace + SketchyBar (mac), then symlinks this repo into `$HOME`. Existing `~/.zshrc` / nvim files are moved to `~/.dotfiles-backup-*`.
+
+On macOS, grant **Accessibility** to AeroSpace and SketchyBar in System Settings → Privacy & Security.
+
+**Wallpaper gradient** (keeps your image, adds a dark Catppuccin fade on top):
+
+```sh
+wallpaper-overlay              # apply (default opacity 0.42)
+wallpaper-overlay --opacity 0.55
+wallpaper-overlay --refresh    # after you change the wallpaper in System Settings
+wallpaper-overlay --reset      # restore original
+```
 
 It asks which agent CLIs to install (Cursor, Kiro, both, neither). Default: **both** on Mac/Linux, **Cursor** on Windows.
 

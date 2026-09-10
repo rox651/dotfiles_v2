@@ -25,8 +25,33 @@ return {
       servers = {
         cssls = {},
         tailwindcss = {
-          root_dir = function(...)
-            return require("lspconfig.util").root_pattern(".git")(...)
+          settings = {
+            tailwindCSS = {
+              classFunctions = { "cn", "clsx", "cva" },
+            },
+          },
+          on_new_config = function(new_config)
+            local root = new_config.root_dir
+            if not root then
+              return
+            end
+            local candidates = {
+              "app/globals.css",
+              "src/app/globals.css",
+              "src/styles/globals.css",
+              "src/index.css",
+              "styles/globals.css",
+            }
+            for _, path in ipairs(candidates) do
+              if vim.fn.filereadable(root .. "/" .. path) == 1 then
+                new_config.settings = new_config.settings or {}
+                new_config.settings.tailwindCSS = new_config.settings.tailwindCSS or {}
+                new_config.settings.tailwindCSS.experimental = {
+                  configFile = path,
+                }
+                break
+              end
+            end
           end,
         },
         tsserver = {

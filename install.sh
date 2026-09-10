@@ -5,6 +5,7 @@ set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "$0")" && pwd)"
 PACKAGES=(zsh git kitty nvim omp herdr)
+MAC_PACKAGES=(aerospace sketchybar borders)
 
 cmd() { command -v "$1" >/dev/null 2>&1; }
 
@@ -157,6 +158,52 @@ install_herdr() {
   curl -fsSL https://herdr.dev/install.sh | sh
 }
 
+install_mac_wm() {
+  [ "$(os)" = mac ] || return 0
+  cmd brew || return 0
+
+  brew trust nikitabobko/tap 2>/dev/null || true
+  brew trust --formula felixkratz/formulae/sketchybar 2>/dev/null || true
+  brew trust --formula felixkratz/formulae/borders 2>/dev/null || true
+  brew install --cask nikitabobko/tap/aerospace
+  brew install felixkratz/formulae/sketchybar felixkratz/formulae/borders lua switchaudio-osx nowplaying-cli
+
+  mkdir -p "$HOME/Library/Fonts"
+  local font="$HOME/Library/Fonts/sketchybar-app-font.ttf"
+  if [ ! -f "$font" ]; then
+    curl -fsSL \
+      https://github.com/kvndrsslr/sketchybar-app-font/releases/download/v2.0.30/sketchybar-app-font.ttf \
+      -o "$font"
+  fi
+
+  if [ ! -f "$HOME/.local/share/sketchybar_lua/sketchybar.so" ]; then
+    local tmp
+    tmp="$(mktemp -d)"
+    git clone --depth 1 https://github.com/FelixKratz/SbarLua.git "$tmp/SbarLua"
+    make -C "$tmp/SbarLua" install
+    rm -rf "$tmp"
+  fi
+}
+
+start_mac_wm() {
+  [ "$(os)" = mac ] || return 0
+  local cfg="$HOME/.config/sketchybar"
+  if [ -d "$cfg/helpers" ]; then
+    (cd "$cfg/helpers" && make)
+  fi
+  brew services start sketchybar 2>/dev/null || true
+  brew services start borders 2>/dev/null || true
+  open -a AeroSpace 2>/dev/null || true
+}
+
+stow_package_list() {
+  local pkgs=("$@")
+  if [ "$(os)" = mac ]; then
+    pkgs+=("${MAC_PACKAGES[@]}")
+  fi
+  printf '%s\n' "${pkgs[@]}"
+}
+
 install_kiro() {
   cmd kiro-cli && return 0
   curl -fsSL https://cli.kiro.dev/install | bash
@@ -246,6 +293,11 @@ stow_packages() {
   unfold_config "$HOME/.config/herdr"
   unfold_config "$HOME/.config/kitty"
   unfold_config "$HOME/.config/nvim"
+  if [ "$(os)" = mac ]; then
+    unfold_config "$HOME/.config/aerospace"
+    unfold_config "$HOME/.config/sketchybar"
+    unfold_config "$HOME/.config/borders"
+  fi
 
   if [ "$adopt" -eq 0 ]; then
     BACKUP="${BACKUP:-$HOME/.dotfiles-backup-$(date +%Y%m%d%H%M%S)}"
@@ -261,7 +313,12 @@ stow_packages() {
   local pkg stow_args=(-v -t "$HOME")
   [ "$adopt" -eq 1 ] && stow_args+=(--adopt)
 
-  for pkg in "${pkgs[@]}"; do
+  local all_pkgs=()
+  while IFS= read -r pkg; do
+    all_pkgs+=("$pkg")
+  done < <(stow_package_list "${pkgs[@]}")
+
+  for pkg in "${all_pkgs[@]}"; do
     (cd "$DOTFILES" && stow "${stow_args[@]}" "$pkg")
   done
 }
@@ -325,10 +382,12 @@ main() {
     install_lazygit
     install_treesitter_cli
     install_herdr
+    install_mac_wm
     [ "$CLI_CURSOR" = 1 ] && install_cursor
     [ "$CLI_KIRO" = 1 ] && install_kiro
     setup_agents
     stow_packages "${PACKAGES[@]}"
+    start_mac_wm
     echo "done. open a new terminal or: exec zsh"
     echo "if this is still bash: chsh -s \"$(command -v zsh)\""
     ;;
@@ -342,8 +401,18 @@ main() {
     ;;
   stow) stow_packages "${PACKAGES[@]}" ;;
   adopt) stow_packages --adopt "${PACKAGES[@]}" ;;
-  unstow) (cd "$DOTFILES" && stow -D -t "$HOME" "${PACKAGES[@]}") ;;
-  dry-run) (cd "$DOTFILES" && stow -n -v -t "$HOME" "${PACKAGES[@]}") ;;
+  unstow)
+    local pkg
+    while IFS= read -r pkg; do
+      (cd "$DOTFILES" && stow -D -t "$HOME" "$pkg")
+    done < <(stow_package_list "${PACKAGES[@]}")
+    ;;
+  dry-run)
+    local pkg
+    while IFS= read -r pkg; do
+      (cd "$DOTFILES" && stow -n -v -t "$HOME" "$pkg")
+    done < <(stow_package_list "${PACKAGES[@]}")
+    ;;
   *)
     usage
     exit 1
