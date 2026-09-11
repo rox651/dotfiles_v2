@@ -216,9 +216,18 @@ install_kiro() {
   curl -fsSL https://cli.kiro.dev/install | bash
 }
 
-# 1=cursor 2=kiro 3=both 4=none  (or: cursor|kiro|both|none)
+install_claude() {
+  cmd claude && return 0
+  if cmd brew; then
+    brew install --cask claude-code && return 0
+  fi
+  curl -fsSL https://claude.ai/install.sh | bash
+}
+
+# 1=cursor 2=kiro 3=both 4=none 5=claude 6=all
+# also: cursor|kiro|claude|both|all|none or comma-separated names
 pick_clis() {
-  local def=3 choice="${1:-}"
+  local def=3 choice="${1:-}" tok
   [ "$(os)" = windows ] && def=1
 
   if [ -z "$choice" ] && [ -t 0 ]; then
@@ -226,8 +235,10 @@ pick_clis() {
     echo "Which agent CLIs?"
     echo "  1) Cursor"
     echo "  2) Kiro"
-    echo "  3) Both"
+    echo "  3) Both (Cursor + Kiro)"
     echo "  4) Neither"
+    echo "  5) Claude Code"
+    echo "  6) All"
     printf "Choice [%s]: " "$def"
     read -r choice
   fi
@@ -235,6 +246,7 @@ pick_clis() {
 
   CLI_CURSOR=0
   CLI_KIRO=0
+  CLI_CLAUDE=0
   case "$choice" in
   1 | cursor) CLI_CURSOR=1 ;;
   2 | kiro) CLI_KIRO=1 ;;
@@ -243,9 +255,37 @@ pick_clis() {
     CLI_KIRO=1
     ;;
   4 | none | skip) ;;
+  5 | claude | claude-code) CLI_CLAUDE=1 ;;
+  6 | all)
+    CLI_CURSOR=1
+    CLI_KIRO=1
+    CLI_CLAUDE=1
+    ;;
   *)
-    echo "unknown CLI choice: $choice (use 1-4, cursor, kiro, both, none)"
-    exit 1
+    local IFS=,
+    for tok in $choice; do
+      tok="${tok#"${tok%%[![:space:]]*}"}"
+      tok="${tok%"${tok##*[![:space:]]}"}"
+      case "$tok" in
+      cursor) CLI_CURSOR=1 ;;
+      kiro) CLI_KIRO=1 ;;
+      claude | claude-code) CLI_CLAUDE=1 ;;
+      both)
+        CLI_CURSOR=1
+        CLI_KIRO=1
+        ;;
+      all)
+        CLI_CURSOR=1
+        CLI_KIRO=1
+        CLI_CLAUDE=1
+        ;;
+      none | skip) ;;
+      *)
+        echo "unknown CLI choice: $choice (use 1-6, cursor, kiro, claude, both, all, none)"
+        exit 1
+        ;;
+      esac
+    done
     ;;
   esac
 }
@@ -332,13 +372,13 @@ stow_packages() {
 
 usage() {
   cat <<EOF
-usage: $0 [install|stow|adopt|unstow|dry-run|nvim|agent] [--cli cursor|kiro|both|none]
+usage: $0 [install|stow|adopt|unstow|dry-run|nvim|agent] [--cli cursor|kiro|claude|both|all|none]
   install   packages + CLIs + stow (default)
   stow      symlink packages into \$HOME
   adopt     stow --adopt (moves conflicts into this repo — commit first)
   unstow    remove symlinks
   nvim      install latest Neovim from GitHub (Linux) or brew (Mac)
-  agent     Gentle-AI + caveman + ponytail for Cursor/Kiro
+  agent     Gentle-AI + caveman + ponytail for Cursor/Kiro/Claude Code
   --cli     skip the prompt (mac/linux default: both; windows: cursor)
 EOF
 }
@@ -392,6 +432,7 @@ main() {
     install_mac_wm
     [ "$CLI_CURSOR" = 1 ] && install_cursor
     [ "$CLI_KIRO" = 1 ] && install_kiro
+    [ "$CLI_CLAUDE" = 1 ] && install_claude
     setup_agents
     stow_packages "${PACKAGES[@]}"
     link_herdr_default_tabs

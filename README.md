@@ -43,21 +43,23 @@ wallpaper-overlay --refresh    # after you change the wallpaper in System Settin
 wallpaper-overlay --reset      # restore original
 ```
 
-It asks which agent CLIs to install (Cursor, Kiro, both, neither). Default: **both** on Mac/Linux, **Cursor** on Windows.
+It asks which agent CLIs to install (Cursor, Kiro, Claude Code, combinations, neither). Default: **Cursor + Kiro** on Mac/Linux, **Cursor** on Windows.
 
 ```sh
 ./install.sh --cli cursor
+./install.sh --cli all
+./install.sh --cli cursor,claude
 ```
 
-Then: `agent login` and/or `kiro-cli` to authenticate.
+Then: `agent login`, `kiro-cli`, and/or `claude` to authenticate.
 
-Install also runs **[Gentle-AI](https://github.com/Gentleman-Programming/gentle-ai)** (Engram memory, skills, SDD) plus **caveman** and **ponytail** on whichever of Cursor / Kiro exists. Memory is **not** synced between machines. Re-run just that:
+Install also runs **[Gentle-AI](https://github.com/Gentleman-Programming/gentle-ai)** (Engram memory, skills, SDD) plus **caveman** and **ponytail** on whichever of Cursor / Kiro / Claude Code exists. Memory is **not** synced between machines. Re-run just that:
 
 ```sh
 ./install.sh agent
 ```
 
-Gentle-AI manages Engram + skills (Angular excluded). Caveman and ponytail stay separate. Cursor: `~/.cursor/skills/`. Kiro: `~/.kiro/skills/`.
+Gentle-AI manages Engram + skills (Angular excluded). Caveman and ponytail stay separate. Cursor: `~/.cursor/skills/`. Kiro: `~/.kiro/skills/`. Claude Code: `~/.claude/skills/`.
 
 Cursor ignores global `.mdc` rules. After `./install.sh agent`, paste into **Settings → Rules → User Rules** once:
 
@@ -65,7 +67,7 @@ Cursor ignores global `.mdc` rules. After `./install.sh agent`, paste into **Set
 - `~/.cursor/ponytail-rule.mdc` (always-on lazy-dev mode)
 - `~/.cursor/caveman-rule.md` (optional always-on terse mode; or invoke `/caveman` per session)
 
-Kiro already loads `~/.kiro/steering/engram.md` and `~/.kiro/steering/ponytail.md`.
+Kiro already loads `~/.kiro/steering/engram.md` and `~/.kiro/steering/ponytail.md`. Claude Code picks up skills from `~/.claude/skills/` (Gentle-AI also writes `~/.claude/CLAUDE.md`).
 
 **Windows (native)** — nvim/git/CLIs only:
 

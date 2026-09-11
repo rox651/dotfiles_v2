@@ -31,13 +31,16 @@ Write-Host ""
 Write-Host "Which agent CLIs?"
 Write-Host "  1) Cursor"
 Write-Host "  2) Kiro (needs WSL on Windows)"
-Write-Host "  3) Both"
+Write-Host "  3) Both (Cursor + Kiro)"
 Write-Host "  4) Neither"
+Write-Host "  5) Claude Code"
+Write-Host "  6) All"
 $choice = Read-Host "Choice [1]"
 if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
 
-$wantCursor = $choice -in @("1", "3", "cursor", "both")
-$wantKiro = $choice -in @("2", "3", "kiro", "both")
+$wantCursor = $choice -in @("1", "3", "6", "cursor", "both", "all")
+$wantKiro = $choice -in @("2", "3", "6", "kiro", "both", "all")
+$wantClaude = $choice -in @("5", "6", "claude", "claude-code", "all")
 
 if ($wantCursor) {
   irm 'https://cursor.com/install?win32=true' | iex
@@ -45,6 +48,10 @@ if ($wantCursor) {
 
 if ($wantKiro) {
   Write-Host "Kiro CLI is not a native Windows install. In WSL: ~/dotfiles/install.sh --cli kiro"
+}
+
+if ($wantClaude) {
+  irm https://claude.ai/install.ps1 | iex
 }
 
 if (-not (Has herdr)) {
@@ -56,6 +63,9 @@ function HasCursor {
 }
 function HasKiro {
   $wantKiro -or (Test-Path "$HOME\.kiro") -or (Has kiro-cli) -or (Has kiro)
+}
+function HasClaude {
+  $wantClaude -or (Test-Path "$HOME\.claude") -or (Has claude)
 }
 
 function Install-GentleAi {
@@ -82,14 +92,16 @@ function Setup-GentleAi {
   $agents = @()
   if (HasCursor) { $agents += "cursor" }
   if (HasKiro) { $agents += "kiro-ide" }
+  if (HasClaude) { $agents += "claude-code" }
   if ($agents.Count -eq 0) {
-    Write-Host "no Cursor or Kiro found; skip gentle-ai"
+    Write-Host "no Cursor, Kiro, or Claude Code found; skip gentle-ai"
     return
   }
   gentle-ai install --agent ($agents -join ",") --components engram,skills --persona neutral
   foreach ($dest in @(
     $(if (HasCursor) { Join-Path $HOME ".cursor\skills" }),
-    $(if (HasKiro) { Join-Path $HOME ".kiro\skills" })
+    $(if (HasKiro) { Join-Path $HOME ".kiro\skills" }),
+    $(if (HasClaude) { Join-Path $HOME ".claude\skills" })
   )) {
     if ($dest) {
       Remove-Item -Recurse -Force (Join-Path $dest "angular") -ErrorAction SilentlyContinue
@@ -126,6 +138,7 @@ function Install-CavemanSkills {
   $dests = @()
   if (HasCursor) { $dests += (Join-Path $HOME ".cursor\skills") }
   if (HasKiro) { $dests += (Join-Path $HOME ".kiro\skills") }
+  if (HasClaude) { $dests += (Join-Path $HOME ".claude\skills") }
   foreach ($dest in $dests) {
     Link-SkillsDir (Join-Path $cache "skills") $dest
     Write-Host "caveman skills -> $dest"
@@ -142,6 +155,7 @@ function Install-PonytailSkills {
   $dests = @()
   if (HasCursor) { $dests += (Join-Path $HOME ".cursor\skills") }
   if (HasKiro) { $dests += (Join-Path $HOME ".kiro\skills") }
+  if (HasClaude) { $dests += (Join-Path $HOME ".claude\skills") }
   foreach ($dest in $dests) {
     Link-SkillsDir (Join-Path $cache "skills") $dest
     Write-Host "ponytail skills -> $dest"
@@ -163,7 +177,7 @@ function Install-AgentSkills {
   Install-PonytailSkills
 }
 
-if ((HasCursor) -or (HasKiro)) {
+if ((HasCursor) -or (HasKiro) -or (HasClaude)) {
   Install-GentleAi
   Setup-GentleAi
   Install-AgentSkills
@@ -171,7 +185,7 @@ if ((HasCursor) -or (HasKiro)) {
 }
 
 Write-Host @"
-Native Windows has nvim + git + fzf + lazygit + zoxide + nvm + herdr$(if ($wantCursor) { ' + Cursor CLI' } else { '' }).
+Native Windows has nvim + git + fzf + lazygit + zoxide + nvm + herdr$(if ($wantCursor) { ' + Cursor CLI' } else { '' })$(if ($wantClaude) { ' + Claude Code' } else { '' }).
 For zsh, zinit, kitty, GNU Stow$(if ($wantKiro) { ', and Kiro CLI' } else { '' }):
   wsl --install
   then inside WSL: git clone <this-repo> ~/dotfiles && ~/dotfiles/install.sh

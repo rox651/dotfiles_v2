@@ -1,4 +1,4 @@
-# Sourced by install.sh. Gentle-AI + caveman + ponytail for Cursor/Kiro.
+# Sourced by install.sh. Gentle-AI + caveman + ponytail for Cursor/Kiro/Claude Code.
 # No Engram git sync / cloud — memory stays on this machine.
 
 GENTLE_AI_INSTALL="https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.sh"
@@ -19,11 +19,26 @@ has_kiro() {
   cmd kiro-cli || cmd kiro
 }
 
+has_claude() {
+  [ "${CLI_CLAUDE:-0}" = 1 ] && return 0
+  [ -d "$HOME/.claude" ] && return 0
+  cmd claude
+}
+
+any_agent() { has_cursor || has_kiro || has_claude; }
+
 gentle_ai_agents() {
   local agents=()
   has_cursor && agents+=("cursor")
   has_kiro && agents+=("kiro-ide")
+  has_claude && agents+=("claude-code")
   (IFS=,; echo "${agents[*]}")
+}
+
+agent_skill_dests() {
+  has_cursor && echo "$HOME/.cursor/skills"
+  has_kiro && echo "$HOME/.kiro/skills"
+  has_claude && echo "$HOME/.claude/skills"
 }
 
 install_gentle_ai() {
@@ -49,7 +64,7 @@ setup_gentle_ai() {
   local agents
   agents="$(gentle_ai_agents)"
   [ -n "$agents" ] || {
-    echo "no Cursor or Kiro found; skip gentle-ai"
+    echo "no Cursor, Kiro, or Claude Code found; skip gentle-ai"
     return 0
   }
   cmd gentle-ai || {
@@ -60,12 +75,11 @@ setup_gentle_ai() {
     --agent "$agents" \
     --components engram,skills \
     --persona neutral
-  if has_cursor; then
-    rm -rf "$HOME/.cursor/skills/angular"
-  fi
-  if has_kiro; then
-    rm -rf "$HOME/.kiro/skills/angular"
-  fi
+  local dest
+  while IFS= read -r dest; do
+    [ -n "$dest" ] || continue
+    rm -rf "$dest/angular"
+  done < <(agent_skill_dests)
   echo "gentle-ai configured for: $agents"
 }
 
@@ -96,43 +110,35 @@ link_skills_dir() {
 install_caveman_skills() {
   local dest did=0
   sync_skill_repo "$CAVEMAN_CACHE" "$CAVEMAN_REPO"
-  if has_cursor; then
-    dest="$HOME/.cursor/skills"
-    link_skills_dir "$CAVEMAN_CACHE/skills" "$dest"
-    [ -f "$CAVEMAN_CACHE/src/rules/caveman-activate.md" ] &&
-      cp -f "$CAVEMAN_CACHE/src/rules/caveman-activate.md" "$HOME/.cursor/caveman-rule.md"
-    did=1
-    echo "caveman skills -> $dest"
-  fi
-  if has_kiro; then
-    dest="$HOME/.kiro/skills"
+  while IFS= read -r dest; do
+    [ -n "$dest" ] || continue
     link_skills_dir "$CAVEMAN_CACHE/skills" "$dest"
     did=1
     echo "caveman skills -> $dest"
+  done < <(agent_skill_dests)
+  if has_cursor && [ -f "$CAVEMAN_CACHE/src/rules/caveman-activate.md" ]; then
+    cp -f "$CAVEMAN_CACHE/src/rules/caveman-activate.md" "$HOME/.cursor/caveman-rule.md"
   fi
-  [ "$did" = 1 ] || echo "no Cursor or Kiro found; skip caveman"
+  [ "$did" = 1 ] || echo "no Cursor, Kiro, or Claude Code found; skip caveman"
 }
 
 install_ponytail_skills() {
   local dest did=0
   sync_skill_repo "$PONYTAIL_CACHE" "$PONYTAIL_REPO"
-  if has_cursor; then
-    dest="$HOME/.cursor/skills"
+  while IFS= read -r dest; do
+    [ -n "$dest" ] || continue
     link_skills_dir "$PONYTAIL_CACHE/skills" "$dest"
-    [ -f "$PONYTAIL_CACHE/.cursor/rules/ponytail.mdc" ] &&
-      cp -f "$PONYTAIL_CACHE/.cursor/rules/ponytail.mdc" "$HOME/.cursor/ponytail-rule.mdc"
     did=1
     echo "ponytail skills -> $dest"
+  done < <(agent_skill_dests)
+  if has_cursor && [ -f "$PONYTAIL_CACHE/.cursor/rules/ponytail.mdc" ]; then
+    cp -f "$PONYTAIL_CACHE/.cursor/rules/ponytail.mdc" "$HOME/.cursor/ponytail-rule.mdc"
   fi
-  if has_kiro; then
-    dest="$HOME/.kiro/skills"
-    link_skills_dir "$PONYTAIL_CACHE/skills" "$dest"
-    [ -f "$PONYTAIL_CACHE/AGENTS.md" ] &&
-      cp -f "$PONYTAIL_CACHE/AGENTS.md" "$HOME/.kiro/steering/ponytail.md"
-    did=1
-    echo "ponytail skills -> $dest"
+  if has_kiro && [ -f "$PONYTAIL_CACHE/AGENTS.md" ]; then
+    mkdir -p "$HOME/.kiro/steering"
+    cp -f "$PONYTAIL_CACHE/AGENTS.md" "$HOME/.kiro/steering/ponytail.md"
   fi
-  [ "$did" = 1 ] || echo "no Cursor or Kiro found; skip ponytail"
+  [ "$did" = 1 ] || echo "no Cursor, Kiro, or Claude Code found; skip ponytail"
 }
 
 install_agent_skills() {
@@ -143,8 +149,8 @@ install_agent_skills() {
 check_agent_setup() {
   local fail=0
   export PATH="$HOME/.local/bin:$PATH"
-  if ! has_cursor && ! has_kiro; then
-    echo "check skipped: no Cursor or Kiro"
+  if ! any_agent; then
+    echo "check skipped: no Cursor, Kiro, or Claude Code"
     return 0
   fi
   cmd gentle-ai || {
@@ -182,13 +188,27 @@ check_agent_setup() {
       fail=1
     }
   fi
+  if has_claude; then
+    [ -f "$HOME/.claude/skills/caveman/SKILL.md" ] || {
+      echo "FAIL: caveman skill missing (claude)"
+      fail=1
+    }
+    [ -f "$HOME/.claude/skills/ponytail/SKILL.md" ] || {
+      echo "FAIL: ponytail skill missing (claude)"
+      fail=1
+    }
+    [ -e "$HOME/.claude/skills/angular" ] && {
+      echo "FAIL: angular skill still in Claude Code"
+      fail=1
+    }
+  fi
   [ "$fail" = 0 ] || return 1
   echo "agent setup check ok"
 }
 
 setup_agents() {
-  if ! has_cursor && ! has_kiro; then
-    echo "Cursor/Kiro not present; skip gentle-ai setup"
+  if ! any_agent; then
+    echo "Cursor/Kiro/Claude Code not present; skip gentle-ai setup"
     return 0
   fi
   need_git
